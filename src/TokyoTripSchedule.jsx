@@ -280,7 +280,7 @@ const TokyoTripSchedule = () => {
                 }`}
                 title="Timeline View"
               >
-                <span className="text-base">📊</span>
+                <span className="text-base">🌸</span>
               </button>
               <button
                 onClick={() => setViewMode("accordion")}
@@ -291,7 +291,7 @@ const TokyoTripSchedule = () => {
                 }`}
                 title="Card View"
               >
-                <span className="text-base">🃏</span>
+                <span className="text-base">🎋</span>
               </button>
             </div>
           </div>
