@@ -106,7 +106,7 @@ const TokyoTripSchedule = () => {
               </div>
 
               {/* Content card */}
-              <div className="flex-1 ml-6">
+              <div className="flex-1">
                 <div
                   className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-white/50"
                   onClick={() => openDetail(item)}
