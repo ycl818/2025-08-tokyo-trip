@@ -7,3 +7,17 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* 針對 iOS Safari 的額外優化 */
+@supports (padding: max(0px)) {
+  .modal-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}
+
+/* 確保 iOS 滾動順暢 */
+.scrollable-content {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}

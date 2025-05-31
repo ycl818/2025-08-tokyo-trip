@@ -1,7 +1,51 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { MarkdownContent } from "./MarkdownContent";
 
 const TripDetailModal = ({ selectedLocation, isModalVisible, onClose }) => {
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+
+  useEffect(() => {
+    // 處理 iOS Safari 動態視窗高度
+    const updateViewportHeight = () => {
+      // 使用 visualViewport API (如果支援) 或 fallback 到 innerHeight
+      const height = window.visualViewport?.height || window.innerHeight;
+      setViewportHeight(height);
+    };
+
+    // 初始設定
+    updateViewportHeight();
+
+    // 監聽視窗大小變化和滾動
+    const handleResize = () => {
+      updateViewportHeight();
+    };
+
+    const handleScroll = () => {
+      // 延遲更新避免過度觸發
+      clearTimeout(window.viewportTimer);
+      window.viewportTimer = setTimeout(updateViewportHeight, 100);
+    };
+
+    // 監聽事件
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    // 如果支援 visualViewport API
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    }
+
+    // 清理
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      }
+      clearTimeout(window.viewportTimer);
+    };
+  }, []);
+
   if (!selectedLocation) return null;
 
   return (
@@ -16,13 +60,24 @@ const TripDetailModal = ({ selectedLocation, isModalVisible, onClose }) => {
           isModalVisible ? "translate-y-0" : "translate-y-full"
         }`}
         style={{
-          height: "calc(100vh - env(safe-area-inset-top) - 8px)",
-          maxHeight: "95vh",
+          // 使用動態計算的視窗高度
+          height: `${Math.min(viewportHeight * 0.95, viewportHeight - 32)}px`,
+          maxHeight: `${viewportHeight - 32}px`,
+          // 確保不會超出安全區域
+          paddingBottom: "env(safe-area-inset-bottom)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header - Mobile Safe with responsive padding */}
-        <div className="bg-gradient-to-r from-pink-300 via-rose-300 to-pink-300 text-white relative flex-shrink-0 pt-3 pb-4 px-4 md:p-4">
+        {/* Header - 改善安全區域處理 */}
+        <div
+          className="bg-gradient-to-r from-pink-300 via-rose-300 to-pink-300 text-white relative flex-shrink-0 rounded-t-3xl"
+          style={{
+            paddingTop: `max(12px, env(safe-area-inset-top, 12px))`,
+            paddingBottom: "16px",
+            paddingLeft: "max(16px, env(safe-area-inset-left, 16px))",
+            paddingRight: "max(16px, env(safe-area-inset-right, 16px))",
+          }}
+        >
           {/* Handle Bar */}
           <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1.5 bg-white/40 rounded-full"></div>
 
@@ -72,8 +127,16 @@ const TripDetailModal = ({ selectedLocation, isModalVisible, onClose }) => {
           </div>
         </div>
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        {/* Scrollable Content Area - 優化滾動處理 */}
+        <div
+          className="flex-1 overflow-y-auto overscroll-contain"
+          style={{
+            // 針對 iOS 優化滾動
+            WebkitOverflowScrolling: "touch",
+            // 確保內容區域正確計算高度
+            minHeight: 0,
+          }}
+        >
           <div className="p-4 md:p-6 lg:p-8">
             {/* Rich Content Area */}
             <div className="prose prose-sm max-w-none">
@@ -104,8 +167,16 @@ const TripDetailModal = ({ selectedLocation, isModalVisible, onClose }) => {
           </div>
         </div>
 
-        {/* Fixed Bottom Action Area */}
-        <div className="bg-gradient-to-t from-pink-50 to-white border-t-2 border-pink-100 p-4 flex-shrink-0 safe-area-bottom">
+        {/* Fixed Bottom Action Area - 改善底部安全區域 */}
+        <div
+          className="bg-gradient-to-t from-pink-50 to-white border-t-2 border-pink-100 flex-shrink-0"
+          style={{
+            paddingTop: "16px",
+            paddingLeft: "max(16px, env(safe-area-inset-left, 16px))",
+            paddingRight: "max(16px, env(safe-area-inset-right, 16px))",
+            paddingBottom: `max(16px, env(safe-area-inset-bottom, 16px))`,
+          }}
+        >
           <div className="flex items-center justify-center">
             <button
               onClick={onClose}
