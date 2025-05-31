@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { tripData } from "./data/tripData";
 import { MarkdownContent } from "./MarkdownContent";
@@ -7,6 +7,8 @@ const TokyoTripSchedule = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedDay, setSelectedDay] = useState(1);
   const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const [visibleItems, setVisibleItems] = useState(new Set());
 
   const openDetail = (location) => {
     setSelectedLocation(location);
@@ -17,6 +19,19 @@ const TokyoTripSchedule = () => {
     setIsModalVisible(false);
     setTimeout(() => setSelectedLocation(null), 300); // Wait for animation to complete
   };
+
+  useEffect(() => {
+    setVisibleItems(new Set());
+
+    const items = tripData[selectedDay] || [];
+    items.forEach((item, index) => {
+      setTimeout(() => {
+        setVisibleItems((prev) => new Set([...prev, item.id]));
+      }, index * 150);
+    });
+  }, [selectedDay]);
+
+  const isVisible = (itemId) => visibleItems.has(itemId);
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -69,7 +84,17 @@ const TokyoTripSchedule = () => {
             <div className="absolute md:left-1/2 left-15.5 md:transform md:-translate-x-1/2 w-1 h-full bg-gradient-to-b from-red-300 to-orange-300 rounded-full"></div>
 
             {tripData[selectedDay].map((item) => (
-              <div key={item.id} className="relative mb-8 last:mb-0">
+              <div
+                key={item.id}
+                className={`relative mb-8 last:mb-0 timeline-item ${
+                  isVisible(item.id) ? "visible" : ""
+                }`}
+                style={{
+                  animationDelay: `${
+                    tripData[selectedDay].indexOf(item) * 150
+                  }ms`,
+                }}
+              >
                 {/* Mobile Layout */}
                 <div className="md:hidden flex items-start">
                   {/* Time and dot */}
