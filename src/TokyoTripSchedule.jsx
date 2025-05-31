@@ -112,7 +112,7 @@ const TokyoTripSchedule = () => {
                   onClick={() => openDetail(item)}
                 >
                   <div className="flex items-start mb-3">
-                    <span className="text-2xl mr-3 mt-1 flex-shrink-0">
+                    <span className="text-2xl mr-1 mt-1 flex-shrink-0">
                       {item.image}
                     </span>
                     <div className="flex-1">
