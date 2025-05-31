@@ -17,7 +17,7 @@ const TripDetailModal = ({ selectedLocation, isModalVisible, onClose }) => {
         }`}
         style={{
           height: "calc(100vh - env(safe-area-inset-top) - 8px)",
-          maxHeight: "98vh",
+          maxHeight: "95vh",
         }}
         onClick={(e) => e.stopPropagation()}
       >
