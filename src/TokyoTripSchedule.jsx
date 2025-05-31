@@ -175,7 +175,7 @@ const TokyoTripSchedule = () => {
         </div>
       </div>
 
-      {/* Enhanced Bottom Modal with Tokyo Pink Theme */}
+      {/* Enhanced Bottom Modal with Tokyo Pink Theme - Optimized Header */}
       {selectedLocation && (
         <div
           className={`fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end justify-center transition-all duration-300 ${
@@ -189,27 +189,27 @@ const TokyoTripSchedule = () => {
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header - Fixed with Tokyo Pink Gradient */}
-            <div className="bg-gradient-to-r from-pink-300 via-rose-300 to-pink-300 text-white p-6 relative flex-shrink-0">
+            {/* Header - Optimized with smaller size and fonts */}
+            <div className="bg-gradient-to-r from-pink-300 via-rose-300 to-pink-300 text-white p-4 relative flex-shrink-0">
               <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1.5 bg-white/40 rounded-full"></div>
 
               <div className="flex justify-between items-start mt-2">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-white/20 rounded-2xl p-3 backdrop-blur-sm">
-                    <span className="text-4xl block">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white/20 rounded-xl p-2 backdrop-blur-sm">
+                    <span className="text-2xl block">
                       {selectedLocation.image}
                     </span>
                   </div>
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-bold mb-2 drop-shadow-sm">
+                    <h2 className="text-lg md:text-xl font-bold mb-1 drop-shadow-sm">
                       {selectedLocation.title}
                     </h2>
-                    <div className="space-y-1">
-                      <p className="text-pink-50 text-base md:text-lg flex items-center">
+                    <div className="space-y-0.5">
+                      <p className="text-pink-50 text-sm md:text-base flex items-center">
                         <span className="mr-2">📍</span>
                         {selectedLocation.location}
                       </p>
-                      <p className="text-pink-50 text-base md:text-lg flex items-center">
+                      <p className="text-pink-50 text-sm md:text-base flex items-center">
                         <span className="mr-2">🕐</span>
                         {selectedLocation.time}
                       </p>
@@ -218,10 +218,10 @@ const TokyoTripSchedule = () => {
                 </div>
                 <button
                   onClick={closeDetail}
-                  className="text-white hover:bg-white/20 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 flex-shrink-0 backdrop-blur-sm border border-white/20 hover:scale-110"
+                  className="text-white hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200 flex-shrink-0 backdrop-blur-sm border border-white/20 hover:scale-110"
                 >
                   <svg
-                    className="w-6 h-6"
+                    className="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -237,7 +237,7 @@ const TokyoTripSchedule = () => {
               </div>
             </div>
 
-            {/* Scrollable Content Area */}
+            {/* Scrollable Content Area - Now has more space */}
             <div className="flex-1 overflow-y-auto overscroll-contain">
               <div className="p-8">
                 {/* Rich Content Area */}
@@ -270,14 +270,8 @@ const TokyoTripSchedule = () => {
             </div>
 
             {/* Fixed Bottom Action Area with Tokyo Pink Theme */}
-            <div className="bg-gradient-to-t from-pink-50 to-white border-t-2 border-pink-100 p-6 flex-shrink-0">
+            <div className="bg-gradient-to-t from-pink-50 to-white border-t-2 border-pink-100 p-4 flex-shrink-0">
               <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-                <div className="text-center md:text-left">
-                  <p className="text-pink-600 text-sm font-medium mb-1">
-                    探索更多精彩內容
-                  </p>
-                  <p className="text-gray-500 text-xs ">繼續你的東京之旅</p>
-                </div>
                 <div className="flex space-x-3 w-full ">
                   <button
                     onClick={closeDetail}
