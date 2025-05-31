@@ -260,10 +260,10 @@ const TokyoTripSchedule = () => {
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/30">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="text-xl">⏰</span>
+                <span className="text-lg">⏰</span>
               </div>
               <div className="text-gray-600">
-                <div className="text-lg font-bold">{countdownInfo}</div>
+                <div className="font-bold">{countdownInfo}</div>
               </div>
             </div>
           </div>
