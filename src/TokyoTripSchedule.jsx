@@ -254,10 +254,10 @@ const TokyoTripSchedule = () => {
           </div>
         </div>
 
-        {/* Countdown info and View Mode switcher - Improved UI */}
-        <div className="flex flex-row sm:flex-row justify-between items-center gap-4 mb-6 px-4">
-          {/* Left side - Countdown Info */}
-          <div className="bg-white/80  backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/30 min-w-fit">
+        {/* Countdown info and View Mode switcher */}
+        <div className="flex flex-row justify-center items-center gap-4 mb-6 px-4">
+          {/* Countdown Info */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/30">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                 <span className="text-xl">⏰</span>
@@ -268,7 +268,7 @@ const TokyoTripSchedule = () => {
             </div>
           </div>
 
-          {/* Right side - View Mode Toggle (more integrated design) */}
+          {/* View Mode Toggle */}
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/50">
             <div className="flex gap-1">
               <button
@@ -280,7 +280,7 @@ const TokyoTripSchedule = () => {
                 }`}
                 title="Timeline View"
               >
-                <span className="text-base">📅</span>
+                <span className="text-base">📊</span>
               </button>
               <button
                 onClick={() => setViewMode("accordion")}
