@@ -1,5 +1,70 @@
-// 修正的 Markdown 解析器組件
+// 簡單的圖片緩存
+const imageCache = new Map();
+
+// 緩存圖片的函數
+const getCachedImage = async (url) => {
+  // 檢查是否為你的 Zeabur 圖片
+  if (!url.includes("image-tokyo-management-yc.zeabur.app")) {
+    return url; // 不是你的圖片，直接返回原 URL
+  }
+
+  // 檢查緩存
+  if (imageCache.has(url)) {
+    return imageCache.get(url);
+  }
+
+  try {
+    // 下載圖片
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    // 存入緩存
+    imageCache.set(url, objectUrl);
+    return objectUrl;
+  } catch (error) {
+    console.error("圖片載入失敗:", error);
+    return url; // 失敗時返回原 URL
+  }
+};
+
+// 修改你的 MarkdownContent 組件
+import React, { useState, useEffect } from "react";
+
 export const MarkdownContent = ({ content }) => {
+  const [processedContent, setProcessedContent] = useState("");
+
+  useEffect(() => {
+    const processImages = async () => {
+      let processed = content;
+
+      // 找出所有圖片
+      const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+      const matches = [...content.matchAll(imageRegex)];
+
+      // 處理每張圖片
+      for (const match of matches) {
+        // eslint-disable-next-line no-unused-vars
+        const [fullMatch, altText, urlAndCaption] = match;
+        const urlMatch = urlAndCaption.match(/^([^"]+)(?:\s+"([^"]*)")?/);
+        const imageUrl = urlMatch ? urlMatch[1].trim() : urlAndCaption;
+
+        // 獲取緩存的圖片 URL
+        const cachedUrl = await getCachedImage(imageUrl);
+
+        // 替換原始 URL
+        if (cachedUrl !== imageUrl) {
+          const newMatch = fullMatch.replace(imageUrl, cachedUrl);
+          processed = processed.replace(fullMatch, newMatch);
+        }
+      }
+
+      setProcessedContent(processed);
+    };
+
+    processImages();
+  }, [content]);
+
   const parseContent = (text) => {
     const lines = text.split("\n");
     const elements = [];
@@ -8,7 +73,6 @@ export const MarkdownContent = ({ content }) => {
       if (line.trim() === "") {
         elements.push(<br key={index} />);
       } else if (line.startsWith("![")) {
-        // 處理圖片 ![alt text](url) 或 ![alt text](url "caption")
         const imageMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
         if (imageMatch) {
           const [, altText, urlAndCaption] = imageMatch;
@@ -24,7 +88,6 @@ export const MarkdownContent = ({ content }) => {
                   alt={altText}
                   className="w-full h-auto rounded-lg shadow-md object-cover max-h-64"
                   onError={(e) => {
-                    // 隱藏圖片，顯示錯誤訊息
                     e.target.style.display = "none";
                     const errorDiv = e.target.nextElementSibling;
                     if (errorDiv) {
@@ -32,7 +95,6 @@ export const MarkdownContent = ({ content }) => {
                     }
                   }}
                   onLoad={(e) => {
-                    // 圖片載入成功時，確保錯誤訊息是隱藏的
                     const errorDiv = e.target.nextElementSibling;
                     if (errorDiv) {
                       errorDiv.style.display = "none";
@@ -83,14 +145,12 @@ export const MarkdownContent = ({ content }) => {
           </h3>
         );
       } else if (line.startsWith("- ") || line.startsWith("* ")) {
-        // 檢查前一行是否也是列表項目
         const prevLineWasList =
           index > 0 &&
           (lines[index - 1].startsWith("- ") ||
             lines[index - 1].startsWith("* "));
 
         if (!prevLineWasList) {
-          // 開始新的列表，收集所有連續的列表項目
           const listItems = [];
           let currentIndex = index;
           while (
@@ -115,9 +175,7 @@ export const MarkdownContent = ({ content }) => {
             </ul>
           );
         }
-        // 如果前一行是列表項目，這一行會被上面的邏輯處理，所以這裡不做任何事
       } else {
-        // 一般段落文字
         elements.push(
           <p key={index} className="text-gray-600 leading-relaxed mb-4">
             {parseInlineFormatting(line)}
@@ -130,7 +188,6 @@ export const MarkdownContent = ({ content }) => {
   };
 
   const parseInlineFormatting = (text) => {
-    // 處理粗體 **text**
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, index) => {
       if (part.startsWith("**") && part.endsWith("**")) {
@@ -144,5 +201,15 @@ export const MarkdownContent = ({ content }) => {
     });
   };
 
-  return <div>{parseContent(content)}</div>;
+  return <div>{parseContent(processedContent || content)}</div>;
+};
+
+// 清理緩存的函數（可選）
+export const clearImageCache = () => {
+  imageCache.forEach((url) => {
+    if (url.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
+  });
+  imageCache.clear();
 };

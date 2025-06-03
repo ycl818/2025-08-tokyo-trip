@@ -7,7 +7,6 @@ import { getCountdownDisplay } from "./utils";
 const TokyoTripSchedule = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [countdownInfo] = useState(() => getCountdownDisplay());
-  console.log("🚀 ~ TokyoTripSchedule ~ countdownInfo:", countdownInfo);
 
   // Helper functions for localStorage with fallback
   const getStoredValue = (key, defaultValue) => {

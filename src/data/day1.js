@@ -12,7 +12,7 @@ export const day1 = [
 
 
 
-![東京鐵塔](https://image-tokyo-management-yc.zeabur.app/images/792ead00-8743-407f-af06-285289da4428.jpg "東京鐵塔")
+![東京鐵塔](https://image-tokyo-management-yc.zeabur.app/images/7f912653-863d-4e4c-97cb-ab51a6b3e374.jpg "東京鐵塔")
 
 ## 關於淺草寺
 淺草寺是東京最古老的寺廟，建於628年，是東京最重要的文化地標之一。這座古老的佛教寺廟供奉觀音菩薩，每年吸引數百萬遊客前來參拜。
