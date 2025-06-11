@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from "react";
-
-import { tripData } from "./data/tripData";
+import PocketBase from "pocketbase";
 import TripDetailModal from "./TripDetailModal";
 import { getCountdownDisplay } from "./utils";
+
+// 將 PocketBase 初始化移到組件外面，避免重複建立連接
+const pb = new PocketBase("https://tokyo-trip-images2025.zeabur.app");
 
 const TokyoTripSchedule = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [countdownInfo] = useState(() => getCountdownDisplay());
+  const [tripData, setTripData] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Helper functions for localStorage with fallback
   const getStoredValue = (key, defaultValue) => {
@@ -41,6 +46,75 @@ const TokyoTripSchedule = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [visibleItems, setVisibleItems] = useState(new Set());
 
+  // 從 PocketBase 載入資料 - 加入取消機制
+  const loadTripData = async (signal) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log("開始載入行程資料...");
+
+      // 獲取所有行程資料，加入 AbortController 支援
+      const resultList = await pb.collection("tokyoTrip").getList(1, 50, {
+        sort: "day, time",
+        requestKey: null, // 禁用 PocketBase 的請求去重
+      });
+
+      // 檢查是否已被取消
+      if (signal?.aborted) {
+        console.log("請求已被取消");
+        return;
+      }
+
+      console.log("✅ 成功載入資料:", resultList);
+
+      // 按天分組資料
+      const groupedData = {};
+      resultList.items.forEach((item) => {
+        if (!groupedData[item.day]) {
+          groupedData[item.day] = [];
+        }
+        groupedData[item.day].push({
+          id: item.id,
+          time: item.time,
+          title: item.title,
+          location: item.location,
+          description: item.description,
+          details: item.details,
+          smallIcon: item.smallIcon,
+          categroy: item.categroy,
+          duration: item.duration,
+        });
+      });
+
+      setTripData(groupedData);
+    } catch (err) {
+      if (err.name === "AbortError") {
+        console.log("請求被主動取消");
+        return;
+      }
+      console.error("❌ 載入行程資料失敗:", err);
+      setError("載入行程資料失敗，請稍後再試");
+    } finally {
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  // 初始載入資料 - 加入清理機制
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    loadTripData(abortController.signal);
+
+    // 清理函數：當組件卸載或依賴變化時取消請求
+    return () => {
+      console.log("清理：取消正在進行的請求");
+      abortController.abort();
+    };
+  }, []); // 空依賴陣列，只在組件掛載時執行一次
+
   // Save to localStorage when selectedDay changes
   useEffect(() => {
     setStoredValue("tokyoTrip_selectedDay", selectedDay);
@@ -53,12 +127,12 @@ const TokyoTripSchedule = () => {
 
   const openDetail = (location) => {
     setSelectedLocation(location);
-    setTimeout(() => setIsModalVisible(true), 10); // Small delay for animation
+    setTimeout(() => setIsModalVisible(true), 10);
   };
 
   const closeDetail = () => {
     setIsModalVisible(false);
-    setTimeout(() => setSelectedLocation(null), 300); // Wait for animation to complete
+    setTimeout(() => setSelectedLocation(null), 300);
   };
 
   useEffect(() => {
@@ -70,142 +144,218 @@ const TokyoTripSchedule = () => {
         setVisibleItems((prev) => new Set([...prev, item.id]));
       }, index * 150);
     });
-  }, [selectedDay]);
+  }, [selectedDay, tripData]);
 
   const isVisible = (itemId) => visibleItems.has(itemId);
+
+  // 載入中狀態
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-orange-50 to-pink-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">載入行程資料中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 錯誤狀態
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-orange-50 to-pink-50">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">❌</div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => loadTripData()}
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            重新載入
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 檢查是否有該天的資料
+  const currentDayData = tripData[selectedDay] || [];
 
   // Timeline Mode
   const renderTimelineMode = () => (
     <div className="max-w-4xl mx-auto">
-      <div className="relative">
-        {/* Desktop: Vertical line in center, Mobile: Left side */}
-        <div className="absolute md:left-1/2 left-15.5 md:transform md:-translate-x-1/2 w-1 h-full bg-gradient-to-b from-red-300 to-orange-300 rounded-full"></div>
+      {currentDayData.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">這天還沒有安排行程</p>
+        </div>
+      ) : (
+        <div className="relative">
+          {/* Desktop: Vertical line in center, Mobile: Left side */}
+          <div className="absolute md:left-1/2 left-15.5 md:transform md:-translate-x-1/2 w-1 h-full bg-gradient-to-b from-red-300 to-orange-300 rounded-full"></div>
 
-        {tripData[selectedDay].map((item) => (
-          <div
-            key={item.id}
-            className={`relative mb-8 last:mb-0 timeline-item ${
-              isVisible(item.id) ? "visible" : ""
-            }`}
-            style={{
-              animationDelay: `${tripData[selectedDay].indexOf(item) * 150}ms`,
-            }}
-          >
-            {/* Mobile Layout */}
-            <div className="md:hidden flex items-start">
-              {/* Time and dot */}
-              <div className="flex flex-col items-center w-32 flex-shrink-0">
-                <div className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-full mb-2 whitespace-nowrap">
-                  {item.time}
+          {currentDayData.map((item) => (
+            <div
+              key={item.id}
+              className={`relative mb-8 last:mb-0 timeline-item ${
+                isVisible(item.id) ? "visible" : ""
+              }`}
+              style={{
+                animationDelay: `${currentDayData.indexOf(item) * 150}ms`,
+              }}
+            >
+              {/* Mobile Layout */}
+              <div className="md:hidden flex items-start">
+                {/* Time and dot */}
+                <div className="flex flex-col items-center w-32 flex-shrink-0">
+                  <div className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-full mb-2 whitespace-nowrap">
+                    {item.time}
+                  </div>
+                  <div className="relative">
+                    <div className="w-4 h-4 bg-red-500 rounded-full border-4 border-white shadow-lg"></div>
+                  </div>
                 </div>
-                {/* Dot positioned on the timeline */}
-                <div className="relative">
-                  <div className="w-4 h-4 bg-red-500 rounded-full border-4 border-white shadow-lg"></div>
-                </div>
-              </div>
 
-              {/* Content card */}
-              <div className="flex-1">
-                <div
-                  className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-white/50"
-                  onClick={() => openDetail(item)}
-                >
-                  <div className="flex items-start mb-3">
-                    <span className="text-2xl mr-1 mt-1 flex-shrink-0">
-                      {item.image}
-                    </span>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-base text-gray-800 leading-tight mb-1">
-                        {item.title}
-                      </h3>
-                      <p className="text-red-500 text-sm font-medium mb-2">
-                        📍 {item.location}
-                      </p>
-                      <p className="text-gray-600 text-sm leading-relaxed">
-                        {item.description}
-                      </p>
+                {/* Content card */}
+                <div className="flex-1">
+                  <div
+                    className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-white/50"
+                    onClick={() => openDetail(item)}
+                  >
+                    <div className="flex items-start mb-3">
+                      <span className="text-2xl mr-1 mt-1 flex-shrink-0">
+                        {item.smallIcon}
+                      </span>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-base text-gray-800 leading-tight mb-1">
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="text-red-500 text-sm font-medium">
+                            📍 {item.location}
+                          </p>
+                          {item.duration && (
+                            <span className="text-gray-500 text-sm">
+                              ⏱️ {item.duration}
+                            </span>
+                          )}
+                          {item.categroy && (
+                            <span className="text-gray-500 text-sm">
+                              {item.categroy}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                          {item.description}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Desktop Layout */}
-            <div className="hidden md:flex items-center">
-              {/* Time (left side) */}
-              <div className="w-1/2 pr-8 text-right">
-                <div className="inline-block bg-red-500 text-white font-semibold px-4 py-2 rounded-full">
-                  {item.time}
-                </div>
-              </div>
-
-              {/* Center dot */}
-              <div className="absolute left-1/2 transform -translate-x-1/2 w-5 h-5 bg-red-500 rounded-full border-4 border-white shadow-lg z-10"></div>
-
-              {/* Activity (right side) */}
-              <div className="w-1/2 pl-8">
-                <div
-                  className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 border border-white/50"
-                  onClick={() => openDetail(item)}
-                >
-                  <div className="flex items-center mb-3">
-                    <span className="text-3xl mr-3">{item.image}</span>
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-800">
-                        {item.title}
-                      </h3>
-                      <p className="text-red-500 text-sm font-medium">
-                        📍 {item.location}
-                      </p>
-                    </div>
+              {/* Desktop Layout */}
+              <div className="hidden md:flex items-center">
+                <div className="w-1/2 pr-8 text-right">
+                  <div className="inline-block bg-red-500 text-white font-semibold px-4 py-2 rounded-full">
+                    {item.time}
                   </div>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {item.description}
-                  </p>
+                </div>
+
+                <div className="absolute left-1/2 transform -translate-x-1/2 w-5 h-5 bg-red-500 rounded-full border-4 border-white shadow-lg z-10"></div>
+
+                <div className="w-1/2 pl-8">
+                  <div
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 border border-white/50"
+                    onClick={() => openDetail(item)}
+                  >
+                    <div className="flex items-center mb-3">
+                      <span className="text-3xl mr-3">{item.image}</span>
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-800">
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="text-red-500 text-sm font-medium">
+                            📍 {item.location}
+                          </p>
+                          {item.duration && (
+                            <span className="text-gray-500 text-sm">
+                              ⏱️ {item.duration}
+                            </span>
+                          )}
+                          {item.categroy && (
+                            <span className="text-gray-500 text-sm">
+                              {item.categroy}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      {item.description}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
   // Card Mode
   const renderCardMode = () => (
     <div className="max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tripData[selectedDay].map((item) => (
-          <div
-            key={item.id}
-            className={`bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 border border-white/50 ${
-              isVisible(item.id)
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-4"
-            }`}
-            style={{
-              transitionDelay: `${tripData[selectedDay].indexOf(item) * 100}ms`,
-            }}
-            onClick={() => openDetail(item)}
-          >
-            <div className="flex items-center mb-4">
-              <div className="bg-red-500 text-white text-sm font-bold px-3 py-2 rounded-full mr-3">
-                {item.time}
+      {currentDayData.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">這天還沒有安排行程</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {currentDayData.map((item) => (
+            <div
+              key={item.id}
+              className={`bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 border border-white/50 ${
+                isVisible(item.id)
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-4"
+              }`}
+              style={{
+                transitionDelay: `${currentDayData.indexOf(item) * 100}ms`,
+              }}
+              onClick={() => openDetail(item)}
+            >
+              <div className="flex items-center mb-4">
+                <div className="bg-red-500 text-white text-sm font-bold px-3 py-2 rounded-full mr-3">
+                  {item.time}
+                </div>
+                <span className="text-2xl">{item.smallIcon}</span>
               </div>
-              <span className="text-2xl">{item.image}</span>
+              <h3 className="font-bold text-lg text-gray-800 mb-2">
+                {item.title}
+              </h3>
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-red-500 text-sm font-medium">
+                  📍 {item.location}
+                </p>
+                {item.duration && (
+                  <span className="text-gray-500 text-sm">
+                    ⏱️ {item.duration}
+                  </span>
+                )}
+                {item.categroy && (
+                  <span className="text-gray-500 text-sm">{item.categroy}</span>
+                )}
+              </div>
+
+              <p className="text-gray-600 text-sm leading-relaxed">
+                {item.description}
+              </p>
             </div>
-            <h3 className="font-bold text-lg text-gray-800 mb-2">
-              {item.title}
-            </h3>
-            <p className="text-red-500 text-sm font-medium mb-3">
-              📍 {item.location}
-            </p>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              {item.description}
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -219,7 +369,6 @@ const TokyoTripSchedule = () => {
           <div className="absolute bottom-32 left-1/4 w-40 h-40 rounded-full bg-pink-300"></div>
           <div className="absolute bottom-20 right-1/3 w-28 h-28 rounded-full bg-red-200"></div>
         </div>
-        {/* Subtle wave pattern */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-red-100/20 to-transparent"></div>
       </div>
 
@@ -255,7 +404,6 @@ const TokyoTripSchedule = () => {
 
         {/* Countdown info and View Mode switcher */}
         <div className="flex flex-row justify-center items-center gap-4 mb-6 px-4">
-          {/* Countdown Info */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/30">
             <div className="flex items-center">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -267,7 +415,6 @@ const TokyoTripSchedule = () => {
             </div>
           </div>
 
-          {/* View Mode Toggle */}
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/50">
             <div className="flex gap-1">
               <button
@@ -301,7 +448,6 @@ const TokyoTripSchedule = () => {
         {viewMode === "accordion" && renderCardMode()}
       </div>
 
-      {/* Use the extracted Modal Component */}
       <TripDetailModal
         selectedLocation={selectedLocation}
         isModalVisible={isModalVisible}

@@ -161,7 +161,7 @@ export const MarkdownContent = ({ content }) => {
                 <img
                   src={imageUrl}
                   alt={altText}
-                  className="w-full h-auto object-cover max-h-96 transition-opacity duration-300"
+                  className="w-full h-auto object-cover max-h-256 transition-opacity duration-300"
                   loading="lazy"
                   onError={(e) => {
                     e.target.style.display = "none";
