@@ -93,12 +93,36 @@ const TripDetailModal = ({ selectedLocation, isModalVisible, onClose }) => {
                   {selectedLocation.title}
                 </h2>
                 <div className="space-y-0.5">
-                  <p className="text-pink-50 text-xs md:text-sm lg:text-base flex items-center line-clamp-1">
-                    <span className="mr-1.5 flex-shrink-0">📍</span>
-                    <span className="truncate">
-                      {selectedLocation.location}
-                    </span>
-                  </p>
+                  <div className="flex items-center space-x-2">
+                    <p className="text-pink-50 text-xs md:text-sm lg:text-base flex items-center line-clamp-1 flex-1">
+                      <span className="mr-1.5 flex-shrink-0">📍</span>
+                      <span className="truncate">
+                        {selectedLocation.location}
+                      </span>
+                    </p>
+                    {/* 地圖連結按鈕 */}
+                    {selectedLocation.locationURL && (
+                      <a
+                        href={selectedLocation.locationURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-white hover:bg-white/20 rounded-full px-2 py-1 flex items-center space-x-1 transition-all duration-200 flex-shrink-0 backdrop-blur-sm border border-white/20 hover:scale-105"
+                        onClick={(e) => e.stopPropagation()}
+                        title="在地圖中開啟"
+                      >
+                        <svg
+                          className="w-3 h-3 md:w-4 md:h-4"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                        </svg>
+                        <span className="text-xs md:text-sm font-medium whitespace-nowrap">
+                          在地圖中開啟
+                        </span>
+                      </a>
+                    )}
+                  </div>
                   <p className="text-pink-50 text-xs md:text-sm lg:text-base flex items-center">
                     <span className="mr-1.5 flex-shrink-0">🕐</span>
                     <span>{selectedLocation.time}</span>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import PocketBase from "pocketbase";
 import TripDetailModal from "./TripDetailModal";
 import { getCountdownDisplay } from "./utils";
+import { Edit3, Save, X } from "lucide-react";
 
 // 將 PocketBase 初始化移到組件外面，避免重複建立連接
 const pb = new PocketBase("https://tokyo-trip-images2025.zeabur.app");
@@ -10,8 +11,13 @@ const TokyoTripSchedule = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [countdownInfo] = useState(() => getCountdownDisplay());
   const [tripData, setTripData] = useState({});
+  const [backupPlans, setBackupPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // 編輯模式相關狀態
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editingData, setEditingData] = useState({});
 
   // Helper functions for localStorage with fallback
   const getStoredValue = (key, defaultValue) => {
@@ -68,26 +74,41 @@ const TokyoTripSchedule = () => {
 
       console.log("✅ 成功載入資料:", resultList);
 
-      // 按天分組資料
+      // 按天分組資料，包含備用行程
       const groupedData = {};
+
       resultList.items.forEach((item) => {
-        if (!groupedData[item.day]) {
-          groupedData[item.day] = [];
-        }
-        groupedData[item.day].push({
+        const itemData = {
           id: item.id,
           time: item.time,
           title: item.title,
           location: item.location,
+          locationURL: item.locationURL,
           description: item.description,
           details: item.details,
           smallIcon: item.smallIcon,
           categroy: item.categroy,
           duration: item.duration,
-        });
+          day: item.day,
+        };
+
+        // 所有資料都按 day 分組
+        if (!groupedData[item.day]) {
+          groupedData[item.day] = [];
+        }
+        groupedData[item.day].push(itemData);
       });
 
       setTripData(groupedData);
+
+      // 設定備用行程（非 1, 2, 3 天的所有行程）
+      const backupItems = [];
+      Object.keys(groupedData).forEach((day) => {
+        if (![1, 2, 3].includes(parseInt(day))) {
+          backupItems.push(...groupedData[day]);
+        }
+      });
+      setBackupPlans(backupItems);
     } catch (err) {
       if (err.name === "AbortError") {
         console.log("請求被主動取消");
@@ -125,7 +146,82 @@ const TokyoTripSchedule = () => {
     setStoredValue("tokyoTrip_viewMode", viewMode);
   }, [viewMode]);
 
+  // 開始編輯特定項目
+  const startEditItem = (item) => {
+    setEditingItemId(item.id);
+    setEditingData({
+      day: item.day,
+      time: item.time,
+    });
+  };
+
+  // 取消編輯
+  const cancelEdit = () => {
+    setEditingItemId(null);
+    setEditingData({});
+  };
+
+  // 保存編輯到 PocketBase
+  const saveEditToPocketBase = async (itemId) => {
+    try {
+      const updatedData = {
+        day: editingData.day,
+        time: editingData.time,
+      };
+
+      // 更新到 PocketBase
+      await pb.collection("tokyoTrip").update(itemId, updatedData);
+
+      // 更新本地狀態
+      if (editingData.day === "backup") {
+        setBackupPlans((prev) =>
+          prev.map((item) =>
+            item.id === itemId ? { ...item, ...updatedData } : item
+          )
+        );
+      } else {
+        // 從備用行程移除並添加到指定日期
+        const itemToMove = backupPlans.find((item) => item.id === itemId);
+        if (itemToMove) {
+          const updatedItem = { ...itemToMove, ...updatedData };
+
+          setBackupPlans((prev) => prev.filter((item) => item.id !== itemId));
+          setTripData((prev) => {
+            const newData = { ...prev };
+            if (!newData[editingData.day]) {
+              newData[editingData.day] = [];
+            }
+            newData[editingData.day].push(updatedItem);
+            // 按時間排序
+            newData[editingData.day].sort((a, b) =>
+              a.time.localeCompare(b.time)
+            );
+            return newData;
+          });
+        }
+      }
+
+      // 清除編輯狀態
+      setEditingItemId(null);
+      setEditingData({});
+
+      console.log("✅ 成功更新到 PocketBase");
+    } catch (error) {
+      console.error("❌ 更新 PocketBase 失敗:", error);
+      alert("更新失敗，請稍後再試");
+    }
+  };
+
+  // 更新編輯數據
+  const updateEditData = (field, value) => {
+    setEditingData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   const openDetail = (location) => {
+    if (editingItemId) return; // 編輯模式下不開啟詳情
     setSelectedLocation(location);
     setTimeout(() => setIsModalVisible(true), 10);
   };
@@ -138,13 +234,14 @@ const TokyoTripSchedule = () => {
   useEffect(() => {
     setVisibleItems(new Set());
 
-    const items = tripData[selectedDay] || [];
+    const items =
+      selectedDay === "backup" ? backupPlans : tripData[selectedDay] || [];
     items.forEach((item, index) => {
       setTimeout(() => {
         setVisibleItems((prev) => new Set([...prev, item.id]));
       }, index * 150);
     });
-  }, [selectedDay, tripData]);
+  }, [selectedDay, tripData, backupPlans]);
 
   const isVisible = (itemId) => visibleItems.has(itemId);
 
@@ -179,7 +276,8 @@ const TokyoTripSchedule = () => {
   }
 
   // 檢查是否有該天的資料
-  const currentDayData = tripData[selectedDay] || [];
+  const currentDayData =
+    selectedDay === "backup" ? backupPlans : tripData[selectedDay] || [];
 
   // Timeline Mode
   const renderTimelineMode = () => (
@@ -269,7 +367,7 @@ const TokyoTripSchedule = () => {
                     onClick={() => openDetail(item)}
                   >
                     <div className="flex items-center mb-3">
-                      <span className="text-3xl mr-3">{item.image}</span>
+                      <span className="text-3xl mr-3">{item.smallIcon}</span>
                       <div>
                         <h3 className="font-bold text-lg text-gray-800">
                           {item.title}
@@ -385,18 +483,27 @@ const TokyoTripSchedule = () => {
 
         {/* Day Switch Buttons */}
         <div className="flex justify-center mb-8 px-4">
-          <div className="bg-white/70 backdrop-blur-sm rounded-full p-1 shadow-lg flex w-full max-w-xs">
-            {[1, 2, 3].map((day) => (
+          <div className="bg-white/70 backdrop-blur-sm rounded-full p-1 shadow-lg flex w-full max-w-md">
+            {[1, 2, 3, "backup"].map((day) => (
               <button
                 key={day}
                 onClick={() => setSelectedDay(day)}
-                className={`flex-1 py-2 px-4 rounded-full font-semibold transition-all duration-300 text-sm ${
+                className={`flex-1 py-2 px-3 rounded-full font-semibold transition-all duration-300 text-sm ${
                   selectedDay === day
-                    ? "bg-red-500 text-white shadow-lg"
+                    ? day === "backup"
+                      ? "bg-blue-500 text-white shadow-lg"
+                      : "bg-red-500 text-white shadow-lg"
                     : "text-gray-600 hover:bg-white/50"
                 }`}
               >
-                Day {day}
+                {day === "backup" ? (
+                  <div className="flex items-center justify-center gap-1">
+                    <span>📋</span>
+                    <span className="hidden sm:inline">Backup</span>
+                  </div>
+                ) : (
+                  `Day ${day}`
+                )}
               </button>
             ))}
           </div>
@@ -443,11 +550,184 @@ const TokyoTripSchedule = () => {
           </div>
         </div>
 
+        {/* Edit Mode Notice */}
+        {editingItemId && (
+          <div className="max-w-4xl mx-auto mb-6">
+            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center gap-2 text-yellow-800">
+                <Edit3 size={20} />
+                <span className="font-semibold">編輯模式</span>
+              </div>
+              <p className="text-yellow-700 text-sm mt-1">
+                正在編輯行程項目，修改完成後請點擊保存按鈕
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Content based on view mode */}
-        {viewMode === "timeline" && renderTimelineMode()}
-        {viewMode === "accordion" && renderCardMode()}
+        {selectedDay === "backup" ? (
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-blue-600 mb-2">
+                📋 備用行程
+              </h2>
+              <p className="text-gray-600">彈性安排的候選景點</p>
+            </div>
+            {backupPlans.length === 0 ? (
+              <div className="text-center py-12">
+                <span className="text-6xl mb-4 block">🤔</span>
+                <p className="text-gray-500 text-lg">目前沒有備用行程</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {backupPlans.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className={`bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg transition-all duration-300 border border-white/50 relative ${
+                      editingItemId === item.id
+                        ? "ring-2 ring-blue-400"
+                        : "hover:shadow-xl hover:scale-105"
+                    } ${
+                      isVisible(item.id)
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-4"
+                    }`}
+                    style={{
+                      transitionDelay: `${index * 100}ms`,
+                    }}
+                    onClick={() =>
+                      editingItemId !== item.id && openDetail(item)
+                    }
+                  >
+                    {/* 編輯按鈕 - 位於卡片右上角 */}
+                    <div className="absolute top-4 right-4">
+                      {editingItemId === item.id ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              saveEditToPocketBase(item.id);
+                            }}
+                            className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors shadow-lg"
+                            title="保存"
+                          >
+                            <Save size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cancelEdit();
+                            }}
+                            className="bg-gray-500 text-white p-2 rounded-full hover:bg-gray-600 transition-colors shadow-lg"
+                            title="取消"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditItem(item);
+                          }}
+                          className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 transition-colors shadow-lg"
+                          title="編輯"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-start gap-3 mb-3 pr-16">
+                      <span className="text-2xl flex-shrink-0">
+                        {item.smallIcon}
+                      </span>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-gray-800 mb-1">
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <p className="text-blue-500 text-sm font-medium">
+                            📍 {item.location}
+                          </p>
+                          {item.duration && (
+                            <span className="text-gray-500 text-sm bg-gray-100 px-2 py-1 rounded-full">
+                              ⏱️ {item.duration}
+                            </span>
+                          )}
+                          {item.categroy && (
+                            <span className="text-gray-500 text-sm bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                              {item.categroy}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 編輯表單 */}
+                    {editingItemId === item.id ? (
+                      <div className="space-y-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            時間
+                          </label>
+                          <input
+                            type="time"
+                            value={editingData.time}
+                            onChange={(e) =>
+                              updateEditData("time", e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            安排到
+                          </label>
+                          <select
+                            value={editingData.day}
+                            onChange={(e) =>
+                              updateEditData("day", e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <option value="backup">保持在備用行程</option>
+                            <option value="1">Day 1</option>
+                            <option value="2">Day 2</option>
+                            <option value="3">Day 3</option>
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                            ⏰ {item.time}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      {item.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {viewMode === "timeline" && renderTimelineMode()}
+            {viewMode === "accordion" && renderCardMode()}
+          </>
+        )}
       </div>
 
+      {/* 主要行程詳細模態窗口 */}
       <TripDetailModal
         selectedLocation={selectedLocation}
         isModalVisible={isModalVisible}
