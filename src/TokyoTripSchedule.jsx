@@ -496,17 +496,17 @@ const TokyoTripSchedule = () => {
                         <h3 className="font-bold text-base text-gray-800 leading-tight mb-1">
                           {item.title}
                         </h3>
-                        <div className="flex items-center gap-2 mb-2">
-                          <p className="text-red-500 text-sm font-medium">
+                        <div className="flex items-center gap-1 mb-2 flex-wrap">
+                          <p className="text-red-500 text-sm font-medium flex-shrink-0">
                             📍 {item.location}
                           </p>
                           {item.duration && (
-                            <span className="text-gray-500 text-sm">
+                            <span className="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded-full flex-shrink-0">
                               ⏱️ {item.duration}
                             </span>
                           )}
                           {item.categroy && (
-                            <span className="text-gray-500 text-sm">
+                            <span className="text-gray-500 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full flex-shrink-0">
                               {item.categroy}
                             </span>
                           )}
@@ -547,17 +547,17 @@ const TokyoTripSchedule = () => {
                         <h3 className="font-bold text-lg text-gray-800">
                           {item.title}
                         </h3>
-                        <div className="flex items-center gap-2 mb-2">
-                          <p className="text-red-500 text-sm font-medium">
+                        <div className="flex items-center gap-1 mb-2 flex-wrap">
+                          <p className="text-red-500 text-sm font-medium flex-shrink-0">
                             📍 {item.location}
                           </p>
                           {item.duration && (
-                            <span className="text-gray-500 text-sm">
+                            <span className="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded-full flex-shrink-0">
                               ⏱️ {item.duration}
                             </span>
                           )}
                           {item.categroy && (
-                            <span className="text-gray-500 text-sm">
+                            <span className="text-gray-500 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full flex-shrink-0">
                               {item.categroy}
                             </span>
                           )}
@@ -665,8 +665,8 @@ const TokyoTripSchedule = () => {
           </p>
         </div>
 
-        {/* Day Switch Buttons */}
-        <div className="flex justify-center mb-8 px-4">
+        {/* Day Switch Buttons and Edit Toggle */}
+        <div className="flex justify-center items-center gap-4 mb-8 px-4">
           <div className="bg-white/70 backdrop-blur-sm rounded-full p-1 shadow-lg flex w-full max-w-md">
             {[1, 2, 3, "backup"].map((day) => (
               <button
@@ -691,9 +691,27 @@ const TokyoTripSchedule = () => {
               </button>
             ))}
           </div>
+
+          {/* Edit Mode Toggle Button */}
+          <div className="bg-white/70 backdrop-blur-sm rounded-full p-1 shadow-lg">
+            <button
+              onClick={toggleEditMode}
+              className={`px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-300 text-sm font-medium ${
+                isEditMode
+                  ? "bg-blue-500 text-white shadow-md"
+                  : "text-gray-600 hover:bg-white/50"
+              }`}
+              title={isEditMode ? "退出編輯模式" : "編輯行程"}
+            >
+              <Edit size={16} />
+              <span className="hidden sm:inline">
+                {isEditMode ? "完成" : "編輯"}
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Countdown info, View Mode switcher, and Edit Mode button */}
+        {/* Countdown info and View Mode switcher */}
         <div className="flex flex-row justify-center items-center gap-4 mb-6 px-4">
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/30">
             <div className="flex items-center">
@@ -731,24 +749,6 @@ const TokyoTripSchedule = () => {
                 <span className="text-base">🎋</span>
               </button>
             </div>
-          </div>
-
-          {/* Edit Mode Toggle Button */}
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/50">
-            <button
-              onClick={toggleEditMode}
-              className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300 text-sm font-medium ${
-                isEditMode
-                  ? "bg-blue-500 text-white shadow-md"
-                  : "text-gray-600 hover:bg-white/50"
-              }`}
-              title={isEditMode ? "退出編輯模式" : "編輯行程"}
-            >
-              <Edit size={16} />
-              <span className="hidden sm:inline">
-                {isEditMode ? "完成" : "編輯"}
-              </span>
-            </button>
           </div>
         </div>
 
