@@ -452,8 +452,8 @@ const TokyoTripSchedule = () => {
         </div>
       ) : (
         <div className="relative">
-          {/* Desktop: Vertical line in center, Mobile: Left side */}
-          <div className="absolute md:left-1/2 left-15.5 md:transform md:-translate-x-1/2 w-1 h-full bg-gradient-to-b from-red-300 to-orange-300 rounded-full"></div>
+          {/* Desktop: Vertical line in center, Mobile: Left side - 调整mobile位置 */}
+          <div className="absolute md:left-1/2 left-12 md:transform md:-translate-x-1/2 w-1 h-full bg-gradient-to-b from-red-300 to-orange-300 rounded-full"></div>
 
           {currentDayData.map((item) => (
             <div
@@ -465,10 +465,10 @@ const TokyoTripSchedule = () => {
                 animationDelay: `${currentDayData.indexOf(item) * 150}ms`,
               }}
             >
-              {/* Mobile Layout */}
+              {/* Mobile Layout - 修改后的版本 */}
               <div className="md:hidden flex items-start">
-                {/* Time and dot */}
-                <div className="flex flex-col items-center w-32 flex-shrink-0">
+                {/* Time and dot - 减小宽度 */}
+                <div className="flex flex-col items-center w-24 flex-shrink-0">
                   <div className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-full mb-2 whitespace-nowrap">
                     {item.time}
                   </div>
@@ -477,7 +477,7 @@ const TokyoTripSchedule = () => {
                   </div>
                 </div>
 
-                {/* Content card */}
+                {/* Content card - 增大空间 */}
                 <div className="flex-1 relative">
                   {renderEditButton(item)}
                   <div
@@ -488,33 +488,36 @@ const TokyoTripSchedule = () => {
                     }`}
                     onClick={() => openDetail(item)}
                   >
-                    <div className="flex items-start mb-3">
-                      <span className="text-2xl mr-1 mt-1 flex-shrink-0">
+                    {/* Icon 和标题行 */}
+                    <div className="flex items-center mb-3 pr-12">
+                      <span className="text-2xl mr-3 flex-shrink-0">
                         {item.smallIcon}
                       </span>
-                      <div className="flex-1 pr-12">
-                        <h3 className="font-bold text-base text-gray-800 leading-tight mb-1">
-                          {item.title}
-                        </h3>
-                        <div className="flex items-center gap-1 mb-2 flex-wrap">
-                          <p className="text-red-500 text-sm font-medium flex-shrink-0">
-                            📍 {item.location}
-                          </p>
-                          {item.duration && (
-                            <span className="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded-full flex-shrink-0">
-                              ⏱️ {item.duration}
-                            </span>
-                          )}
-                          {item.categroy && (
-                            <span className="text-gray-500 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full flex-shrink-0">
-                              {item.categroy}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-600 text-sm leading-relaxed">
-                          {item.description}
-                        </p>
-                      </div>
+                      <h3 className="font-bold text-base text-gray-800 leading-tight">
+                        {item.title}
+                      </h3>
+                    </div>
+
+                    {/* 地点和标签信息 */}
+                    <div className="flex items-center gap-1 mb-3 flex-wrap">
+                      <p className="text-red-500 text-sm font-medium flex-shrink-0">
+                        📍 {item.location}
+                      </p>
+                      {item.duration && (
+                        <span className="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded-full flex-shrink-0">
+                          ⏱️ {item.duration}
+                        </span>
+                      )}
+                      {item.categroy && (
+                        <span className="text-gray-500 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full flex-shrink-0">
+                          {item.categroy}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Description 独立占用全宽 */}
+                    <div className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                      {item.description}
                     </div>
                     {renderEditForm(item)}
                   </div>
