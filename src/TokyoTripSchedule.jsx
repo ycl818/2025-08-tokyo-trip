@@ -3,6 +3,7 @@ import PocketBase from "pocketbase";
 import TripDetailModal from "./TripDetailModal";
 import { getCountdownDisplay } from "./utils";
 import { Edit3, Save, X, Edit } from "lucide-react";
+import PasswordModal from "./PasswordModal";
 
 // 將 PocketBase 初始化移到組件外面，避免重複建立連接
 const pb = new PocketBase("https://tokyo-trip-images2025.zeabur.app");
@@ -14,6 +15,37 @@ const TokyoTripSchedule = () => {
   const [backupPlans, setBackupPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [isPasswordVerified, setIsPasswordVerified] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  // 3. 简化的密码验证处理函数
+  const handlePasswordVerified = () => {
+    setIsPasswordVerified(true);
+    setIsEditMode(true);
+    setShowPasswordModal(false);
+  };
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+  };
+
+  // 4. 修改编辑模式切换函数
+  const toggleEditMode = () => {
+    if (!isEditMode) {
+      // 进入编辑模式需要验证密码
+      if (!isPasswordVerified) {
+        setShowPasswordModal(true);
+        return;
+      }
+    } else {
+      // 退出编辑模式
+      setIsEditMode(false);
+      setIsPasswordVerified(false);
+      setEditingItemId(null);
+      setEditingData({});
+    }
+  };
 
   // 編輯模式相關狀態
   const [isEditMode, setIsEditMode] = useState(false);
@@ -147,15 +179,15 @@ const TokyoTripSchedule = () => {
     setStoredValue("tokyoTrip_viewMode", viewMode);
   }, [viewMode]);
 
-  // 切換編輯模式
-  const toggleEditMode = () => {
-    setIsEditMode(!isEditMode);
-    if (isEditMode) {
-      // 退出編輯模式時清除編輯狀態
-      setEditingItemId(null);
-      setEditingData({});
-    }
-  };
+  // // 切換編輯模式
+  // const toggleEditMode = () => {
+  //   setIsEditMode(!isEditMode);
+  //   if (isEditMode) {
+  //     // 退出編輯模式時清除編輯狀態
+  //     setEditingItemId(null);
+  //     setEditingData({});
+  //   }
+  // };
 
   // 開始編輯特定項目
   const startEditItem = (item) => {
@@ -863,6 +895,16 @@ const TokyoTripSchedule = () => {
           </>
         )}
       </div>
+
+      {/* 密码验证模态框 */}
+      <PasswordModal
+        isVisible={showPasswordModal}
+        onVerify={handlePasswordVerified}
+        onClose={closePasswordModal}
+        correctPassword="0603"
+        title="編輯模式驗證"
+        subtitle="請輸入密碼"
+      />
 
       {/* 主要行程詳細模態窗口 */}
       <TripDetailModal
