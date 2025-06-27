@@ -453,7 +453,7 @@ const TokyoTripSchedule = () => {
       ) : (
         <div className="relative">
           {/* Desktop: Vertical line in center, Mobile: Left side - 调整mobile位置 */}
-          <div className="absolute md:left-1/2 left-12 md:transform md:-translate-x-1/2 w-1 h-full bg-gradient-to-b from-red-300 to-orange-300 rounded-full"></div>
+          <div className="absolute md:left-1/2 left-11.5 md:transform md:-translate-x-1/2 w-1 h-full bg-gradient-to-b from-red-300 to-orange-300 rounded-full"></div>
 
           {currentDayData.map((item) => (
             <div
